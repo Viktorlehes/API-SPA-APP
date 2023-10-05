@@ -94,7 +94,7 @@ class Server < Sinatra::Base
     content_type :json
     result = @db.execute("INSERT into employees (name, email, phone, department_id, img)
                               VALUES (?,?,?,?,?) RETURNING id",
-                         payload["name"], payload["email"], payload["phone"], payload["department_id"], payload["img"])
+                         payload["name"], payload["email"], payload["phone"], payload["department_id"], payload["img"]).first
     return { result: "success", location: "/api/employees/#{result["id"]}" }.to_json
   end
 
