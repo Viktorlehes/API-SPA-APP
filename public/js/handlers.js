@@ -20,6 +20,9 @@ async function handleSubmit(event) {
       img,
     }),
   });
-  console.log(await response.json());
+  const data = await response.json();
+  // const newEmployee = await fetch(data.location);
+
+  // remove / replace from dom
   location.reload();
 }

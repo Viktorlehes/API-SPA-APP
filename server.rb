@@ -1,6 +1,8 @@
 require "debug"
 # use binding.break for debug
 
+set :port, 3000
+
 class Server < Sinatra::Base
   def initialize
     super
@@ -36,7 +38,11 @@ class Server < Sinatra::Base
   #index
   get "/api/employees" do
     content_type :json
-    @db.execute("SELECT * FROM employees").to_json
+    @db.execute("
+      SELECT employees.*, departments.name AS department_name
+      FROM employees
+      INNER JOIN departments ON employees.department_id = departments.id;
+      ").to_json
   end
 
   #show
@@ -70,14 +76,15 @@ class Server < Sinatra::Base
   end
 
   #update
-  patch "/api/employees/:id" do
+  post "/api/employees/:id" do
     id = params["id"]
-    payload = request.body.read # data sent using fetch is placed in request body
+    payload = JSON.parse(request.body.read) # data sent using fetch is placed in request body
     content_type :json
+    p payload
     result = @db.execute("UPDATE employees 
-                              SET name=?, email=?, phone=?, department_id=?, img=?
+                              SET name=?, email=?, phone=?, department_id=?
                               WHERE id = ?",
-                         [payload["name"], payload["email"], payload["phone"], payload["department_id"], payload["img"], payload["id"]])
+                         [payload["name"], payload["email"], payload["phone"], payload["department_id"], payload["id"]])
     return { result: "success" }.to_json
   end
 
@@ -86,15 +93,16 @@ class Server < Sinatra::Base
     payload = JSON.parse(request.body.read)
     content_type :json
     result = @db.execute("INSERT into employees (name, email, phone, department_id, img)
-                              VALUES (?,?,?,?,?)",
+                              VALUES (?,?,?,?,?) RETURNING id",
                          payload["name"], payload["email"], payload["phone"], payload["department_id"], payload["img"])
-    return { result: "success" }.to_json
+    return { result: "success", location: "/api/employees/#{result["id"]}" }.to_json
   end
 
   #destroy
   post "/api/delete/employees/:id" do
     content_type :json
     result = @db.execute("DELETE FROM employees WHERE id = ?", params["id"])
+    p params["id"]
     return { result: "success" }.to_json
   end
 end
