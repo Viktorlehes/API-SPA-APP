@@ -48,7 +48,12 @@ class Server < Sinatra::Base
   #show
   get "/api/employees/:id" do
     content_type :json
-    @db.execute("SELECT * FROM employees WHERE id = ?", params["id"]).first.to_json
+    result = @db.execute("SELECT employees.*, departments.name AS department_name
+      FROM employees
+      INNER JOIN departments ON employees.department_id = departments.id
+      WHERE employees.id = ? 
+      ;", params["id"]).first.to_json
+    return result
   end
 
   #new
@@ -78,14 +83,14 @@ class Server < Sinatra::Base
   #update
   post "/api/employees/:id" do
     id = params["id"]
-    payload = JSON.parse(request.body.read) # data sent using fetch is placed in request body
+    payload = JSON.parse(request.body.read)
     content_type :json
     p payload
     result = @db.execute("UPDATE employees 
                               SET name=?, email=?, phone=?, department_id=?
-                              WHERE id = ?",
+                              WHERE id = ? RETURNING id ",
                          [payload["name"], payload["email"], payload["phone"], payload["department_id"], payload["id"]])
-    return { result: "success" }.to_json
+    return { result: "success", location: "/api/employees/#{result[0]["id"]}" }.to_json
   end
 
   #create

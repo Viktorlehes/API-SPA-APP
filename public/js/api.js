@@ -38,39 +38,49 @@ class EmployeeCard extends HTMLElement {
   constructor(employee) {
     super();
     this.attachShadow({ mode: "open" });
-    this.shadowRoot.appendChild(this.template);
     this.employee = employee;
 
-    this.shadowRoot.querySelector("img").src = `/img/${employee.img}.jpg`;
-    this.shadowRoot.querySelector(".employee-card").id = employee.id;
+    this.shadowRoot.addEventListener("employee-updated", (e) => {
+      this.employee = e.detail;
+      console.log(this.employee);
+      this.#renderEmployeeCard();
+    });
+  }
+
+  connectedCallback() {
+    this.#renderEmployeeCard();
+  }
+
+  #renderEmployeeCard() {
+    this.shadowRoot.innerHTML = "";
+    this.shadowRoot.appendChild(this.template);
+    this.shadowRoot.querySelector("img").src = `/img/${this.employee.img}.jpg`;
+    this.shadowRoot.querySelector(".employee-card").id = this.employee.id;
 
     this.shadowRoot
       .querySelector(".kick")
       .addEventListener("click", () => this.kickEmployee(this.employee.id));
-  }
 
-  connectedCallback() {
+    this.shadowRoot
+      .querySelector(".edit")
+      .addEventListener("click", (e) => this.#editEmployee());
+
     const selectors = ["name", "email", "phone", "department_name"];
+
     selectors.forEach((selector) => {
       this.shadowRoot.querySelector(`.${selector}`).innerHTML =
         this.employee[selector];
     });
-
-    this.shadowRoot
-      .querySelector(".edit")
-      .addEventListener("click", (e) => this.editEmployee(e));
   }
 
   async kickEmployee(id) {
     await fetch(`/api/delete/employees/${id}`, { method: "POST" });
-    location.reload();
+    this.shadowRoot.querySelector(".employee-card").remove();
   }
 
-  editEmployee(e) {
-    const grandParent = e.target.parentElement.parentElement;
-    grandParent.lastElementChild.remove();
-    const element = new EmployeeForm(this.employee);
-    grandParent.appendChild(element);
+  #editEmployee() {
+    this.shadowRoot.innerHTML = "";
+    this.shadowRoot.appendChild(new EmployeeForm(this.employee));
   }
 
   get template() {
@@ -84,23 +94,6 @@ class EmployeeForm extends HTMLElement {
     this.attachShadow({ mode: "open" });
     this.shadowRoot.appendChild(this.template);
     this.employee = employee;
-  }
-
-  async updateEmployee(employeeId, data) {
-    const response = await fetch(`/api/employees/${employeeId}`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        name: data.name,
-        email: data.email,
-        phone: data.phone,
-        department_id: data.department_id,
-        id: employeeId,
-      }),
-    });
-    location.reload();
   }
 
   connectedCallback() {
@@ -123,6 +116,37 @@ class EmployeeForm extends HTMLElement {
       );
       this.updateEmployee(employeeId, data);
     });
+  }
+
+  async updateEmployee(employeeId, data) {
+    const req = await fetch(`/api/employees/${employeeId}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: data.name,
+        email: data.email,
+        phone: data.phone,
+        department_id: data.department_id,
+        id: employeeId,
+      }),
+    });
+
+    const res = await req.json();
+
+    const newEmployeeJSON = await fetch(res.location);
+
+    const newEmployee = await newEmployeeJSON.json();
+
+    this.dispatchEvent(
+      new CustomEvent("employee-updated", {
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+        detail: newEmployee,
+      })
+    );
   }
 
   async getEmployee(id) {
@@ -154,13 +178,13 @@ class NewEmployeeForm extends HTMLElement {
           },
           {}
         );
-        console.log(data);
         this.createEmployee(data);
+        this.shadowRoot.querySelector("#employeeForm").reset();
       });
   }
 
   async createEmployee(data) {
-    const response = await fetch("/api/employes/", {
+    const req = await fetch("/api/employes/", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -168,12 +192,18 @@ class NewEmployeeForm extends HTMLElement {
       body: JSON.stringify(data),
     });
 
-    console.log(await response.json());
-    // get new employee and add to dom
-    // const newEmployee = await fetch(data.location);
-    // remove / replace from dom
+    const res = await req.json();
 
-    location.reload();
+    const newEmployeeJSON = await fetch(res.location);
+
+    const newEmployee = await newEmployeeJSON.json();
+
+    const element = new EmployeeCard(newEmployee);
+
+    document
+      .querySelector("employee-cards")
+      .shadowRoot.querySelector("#root")
+      .appendChild(element);
   }
 
   get template() {

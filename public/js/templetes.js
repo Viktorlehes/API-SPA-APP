@@ -80,13 +80,15 @@ formTemplate.innerHTML = `
       background-color: lightgreen;
     }
     </style>
-    <form>
-      <input class="name"></input>
-      <input class="email"></input>
-      <input class="phone"></input>
-      <input class="department_id"></input>
-      <button class="">Update</button>
-    </form>
+    <div class="employee-card">
+        <form>
+            <input class="name"></input>
+            <input class="email"></input>
+            <input class="phone"></input>
+            <input class="department_id"></input>
+            <button class="">Update</button>
+        </form>
+    </div>
 `;
 
 export const rootTemplate = document.createElement("template");
