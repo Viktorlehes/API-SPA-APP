@@ -85,7 +85,6 @@ class Server < Sinatra::Base
     id = params["id"]
     payload = JSON.parse(request.body.read)
     content_type :json
-    p payload
     result = @db.execute("UPDATE employees 
                               SET name=?, email=?, phone=?, department_id=?
                               WHERE id = ? RETURNING id ",
