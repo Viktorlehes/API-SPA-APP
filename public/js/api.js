@@ -42,7 +42,6 @@ class EmployeeCard extends HTMLElement {
 
     this.shadowRoot.addEventListener("employee-updated", (e) => {
       this.employee = e.detail;
-      console.log(this.employee);
       this.#renderEmployeeCard();
     });
   }
@@ -56,6 +55,24 @@ class EmployeeCard extends HTMLElement {
     this.shadowRoot.appendChild(this.template);
     this.shadowRoot.querySelector("img").src = `/img/${this.employee.img}.jpg`;
     this.shadowRoot.querySelector(".employee-card").id = this.employee.id;
+
+    const productCard = this.shadowRoot.querySelector(".product-card");
+
+    productCard.addEventListener("mouseenter", function () {
+      const description = productCard.querySelectorAll(".description");
+      description.forEach((desc) => {
+        desc.style.opacity = "1";
+        desc.style.display = "block";
+      });
+    });
+
+    productCard.addEventListener("mouseleave", function () {
+      const description = productCard.querySelectorAll(".description");
+      description.forEach((desc) => {
+        desc.style.opacity = "0";
+        desc.style.display = "none";
+      });
+    });
 
     this.shadowRoot
       .querySelector(".kick")
